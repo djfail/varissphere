@@ -45,8 +45,10 @@ async function fetchUserProfile(userId) {
 // UI State Alterations
 function toggleAuthModal() {
     const modal = document.getElementById('auth-modal');
-    modal.classList.toggle('hidden');
-    document.getElementById('auth-status').innerText = '';
+    if (modal) modal.classList.toggle('hidden');
+    
+    const status = document.getElementById('auth-status');
+    if (status) status.innerText = '';
 }
 
 function toggleAuthView() {
@@ -61,8 +63,10 @@ function toggleAuthView() {
         // Player is trying to switch from Login to Sign Up view
         if (playerInviteInput !== SECRET_INVITE_CODE) {
             const status = document.getElementById('auth-status');
-            status.className = "text-red-400 text-xs mt-2 font-mono";
-            status.innerText = "ACCESS_DENIED: Secure invitation token invalid or missing.";
+            if (status) {
+                status.className = "text-red-400 text-xs mt-2 font-mono";
+                status.innerText = "ACCESS_DENIED: Secure invitation token invalid or missing.";
+            }
             return;
         }
     }
@@ -75,68 +79,90 @@ function toggleAuthView() {
     const onboarding = document.getElementById('onboarding-fields');
 
     if (isSignUpView) {
-        title.innerText = "// REGISTRATION_MATRIX";
-        toggleLink.innerText = "Return to secure node login";
-        submitBtn.innerText = "CREATE_MATRIX_IDENTITY";
-        onboarding.classList.remove('hidden');
+        if (title) title.innerText = "// REGISTRATION_MATRIX";
+        if (toggleLink) toggleLink.innerText = "Return to secure node login";
+        if (submitBtn) submitBtn.innerText = "CREATE_MATRIX_IDENTITY";
+        if (onboarding) onboarding.classList.remove('hidden');
     } else {
-        title.innerText = "// IDENTITY_VERIFICATION";
-        toggleLink.innerText = "Need to create a new matrix profile? Sign up";
-        submitBtn.innerText = "INITIALIZE_SESSION";
-        onboarding.classList.add('hidden');
+        if (title) title.innerText = "// IDENTITY_VERIFICATION";
+        if (toggleLink) toggleLink.innerText = "Need to create a new matrix profile? Sign up";
+        if (submitBtn) submitBtn.innerText = "INITIALIZE_SESSION";
+        if (onboarding) onboarding.classList.add('hidden');
     }
 }
 
 function updateUIForLoggedIn() {
-    document.getElementById('login-btn').classList.add('hidden');
-    document.getElementById('user-profile-summary').classList.remove('hidden');
-    document.getElementById('player-broadcaster').classList.remove('hidden');
+    const loginBtn = document.getElementById('login-btn');
+    const userProfile = document.getElementById('user-profile-summary');
+    const broadcaster = document.getElementById('player-broadcaster');
+    const headerUsername = document.getElementById('header-username');
+
+    if (loginBtn) loginBtn.classList.add('hidden');
+    if (userProfile) userProfile.classList.remove('hidden');
+    if (broadcaster) broadcaster.classList.remove('hidden');
     
-    if (currentProfile) {
-        document.getElementById('header-username').innerText = `${currentProfile.first_name} [${currentProfile.house}]`;
-    } else {
-        document.getElementById('header-username').innerText = "Connected Profile";
+    if (currentProfile && headerUsername) {
+        headerUsername.innerText = `${currentProfile.first_name} [${currentProfile.house}]`;
+    } else if (headerUsername) {
+        headerUsername.innerText = "Connected Profile";
     }
 }
 
 function updateUIForLoggedOut() {
-    document.getElementById('login-btn').classList.remove('hidden');
-    document.getElementById('user-profile-summary').classList.add('hidden');
-    document.getElementById('player-broadcaster').classList.add('hidden');
+    const loginBtn = document.getElementById('login-btn');
+    const userProfile = document.getElementById('user-profile-summary');
+    const broadcaster = document.getElementById('player-broadcaster');
+
+    if (loginBtn) loginBtn.classList.remove('hidden');
+    if (userProfile) userProfile.classList.add('hidden');
+    if (broadcaster) broadcaster.classList.add('hidden');
 }
 
 // Handle Authentication Forms
 async function handleAuthSubmit() {
     const status = document.getElementById('auth-status');
-    const email = document.getElementById('auth-email').value.trim();
-    const password = document.getElementById('auth-password').value;
+    const emailField = document.getElementById('auth-email');
+    const passwordField = document.getElementById('auth-password');
+
+    if (!emailField || !passwordField) return;
+
+    const email = emailField.value.trim();
+    const password = passwordField.value;
 
     if (!email || !password) {
-        status.className = "text-red-400 text-xs mt-2";
-        status.innerText = "ERROR: Credentials parameter missing.";
+        if (status) {
+            status.className = "text-red-400 text-xs mt-2";
+            status.innerText = "ERROR: Credentials parameter missing.";
+        }
         return;
     }
 
-    status.className = "text-yellow-400 text-xs mt-2 animate-pulse";
-    status.innerText = "TRANSMITTING DATA PACKETS...";
+    if (status) {
+        status.className = "text-yellow-400 text-xs mt-2 animate-pulse";
+        status.innerText = "TRANSMITTING DATA PACKETS...";
+    }
 
     if (isSignUpView) {
         // Handle User Sign Up
-        const username = document.getElementById('auth-username').value.trim();
-        const first_name = document.getElementById('auth-firstname').value.trim();
-        const house = document.getElementById('auth-house').value.trim();
+        const username = document.getElementById('auth-username')?.value.trim();
+        const first_name = document.getElementById('auth-firstname')?.value.trim();
+        const house = document.getElementById('auth-house')?.value.trim();
 
         if (!username || !first_name || !house) {
-            status.className = "text-red-400 text-xs mt-2";
-            status.innerText = "ERROR: Core character identity metrics missing.";
+            if (status) {
+                status.className = "text-red-400 text-xs mt-2";
+                status.innerText = "ERROR: Core character identity metrics missing.";
+            }
             return;
         }
 
         const { data, error: signUpError } = await supabaseClient.auth.signUp({ email, password });
         
         if (signUpError) {
-            status.className = "text-red-400 text-xs mt-2";
-            status.innerText = "FAIL: " + signUpError.message;
+            if (status) {
+                status.className = "text-red-400 text-xs mt-2";
+                status.innerText = "FAIL: " + signUpError.message;
+            }
             return;
         }
 
@@ -153,14 +179,18 @@ async function handleAuthSubmit() {
                 }]);
 
             if (profileError) {
-                status.className = "text-red-400 text-xs mt-2";
-                status.innerText = "AUTH SUCCESSFUL, PROFILE CRASH: " + profileError.message;
+                if (status) {
+                    status.className = "text-red-400 text-xs mt-2";
+                    status.innerText = "AUTH SUCCESSFUL, PROFILE CRASH: " + profileError.message;
+                }
                 return;
             }
         }
         
-        status.className = "text-green-400 text-xs mt-2";
-        status.innerText = "SUCCESS: Profile matrix initialized!";
+        if (status) {
+            status.className = "text-green-400 text-xs mt-2";
+            status.innerText = "SUCCESS: Profile matrix initialized!";
+        }
         setTimeout(() => toggleAuthModal(), 1500);
 
     } else {
@@ -168,11 +198,15 @@ async function handleAuthSubmit() {
         const { error: loginError } = await supabaseClient.auth.signInWithPassword({ email, password });
         
         if (loginError) {
-            status.className = "text-red-400 text-xs mt-2";
-            status.innerText = "FAIL: Access Denied. " + loginError.message;
+            if (status) {
+                status.className = "text-red-400 text-xs mt-2";
+                status.innerText = "FAIL: Access Denied. " + loginError.message;
+            }
         } else {
-            status.className = "text-green-400 text-xs mt-2";
-            status.innerText = "SUCCESS: Identity Verified.";
+            if (status) {
+                status.className = "text-green-400 text-xs mt-2";
+                status.innerText = "SUCCESS: Identity Verified.";
+            }
             setTimeout(() => toggleAuthModal(), 1000);
         }
     }
@@ -185,12 +219,19 @@ async function handleLogout() {
 // Player Post Broadcaster
 async function submitPlayerPost() {
     const status = document.getElementById('broadcast-status');
-    const content = document.getElementById('broadcast-content').value.trim();
-    const photo_url = document.getElementById('broadcast-photo').value.trim();
+    const contentField = document.getElementById('broadcast-content');
+    const photoField = document.getElementById('broadcast-photo');
+
+    if (!contentField || !photoField) return;
+
+    const content = contentField.value.trim();
+    const photo_url = photoField.value.trim();
 
     if (!content) {
-        status.className = "text-red-400";
-        status.innerText = "TRANSMISSION BLOCKED: Content vector empty.";
+        if (status) {
+            status.className = "text-red-400";
+            status.innerText = "TRANSMISSION BLOCKED: Content vector empty.";
+        }
         return;
     }
 
@@ -209,13 +250,17 @@ async function submitPlayerPost() {
 
         if (error) throw error;
 
-        status.className = "text-emerald-400";
-        status.innerText = "TRANSMISSION SENT SUCCESSFULLY.";
-        document.getElementById('broadcast-content').value = '';
-        document.getElementById('broadcast-photo').value = '';
+        if (status) {
+            status.className = "text-emerald-400";
+            status.innerText = "TRANSMISSION SENT SUCCESSFULLY.";
+        }
+        contentField.value = '';
+        photoField.value = '';
     } catch (err) {
-        status.className = "text-red-400";
-        status.innerText = "TRANSMISSION ERROR: " + err.message;
+        if (status) {
+            status.className = "text-red-400";
+            status.innerText = "TRANSMISSION ERROR: " + err.message;
+        }
     }
 }
 
@@ -223,6 +268,8 @@ async function submitPlayerPost() {
 async function fetchPulseFeed() {
     const container = document.getElementById('feed-container');
     const loading = document.getElementById('loading');
+
+    if (!container) return;
 
     try {
         const { data: posts, error } = await supabaseClient
