@@ -23,14 +23,24 @@ const houseThemes = {
     "The House of R": { background: "linear-gradient(to right, #800080, #808080)" }
 };
 
+// ====== THEME & UI HELPERS ======
 window.applyHouseTheme = function(houseName) {
     const theme = houseThemes[houseName] || { color: "#6b21a8" };
     const root = document.documentElement.style;
     if (theme.background) {
         root.setProperty('--primary-accent', theme.background);
-        document.body.style.borderTop = `5px solid ${theme.background.split(',')[1].trim()}`;
     } else {
         root.setProperty('--primary-accent', theme.color);
+    }
+};
+
+window.updateHouseBadge = function(houseName) {
+    const badge = document.getElementById('user-house-badge');
+    const nameDisplay = document.getElementById('display-house-name');
+    if (badge && nameDisplay) {
+        badge.classList.remove('hidden');
+        nameDisplay.innerText = houseName;
+        badge.style.borderColor = 'var(--primary-accent)';
     }
 };
 
@@ -48,13 +58,12 @@ window.handleAuthSubmit = async function() {
     const handle = document.getElementById('auth-username')?.value.trim();
     const password = document.getElementById('auth-password')?.value;
     const house = document.getElementById('auth-house')?.value;
+    const email = `${handle.toLowerCase().replace(/\s/g, '')}@varissphere.node`;
 
     if (!handle || !password) return;
 
     if (isSignUpView) {
-        const email = `${handle.toLowerCase().replace(/\s/g, '')}@varissphere.node`;
         const { data, error } = await supabaseClient.auth.signUp({ email, password });
-        
         if (!error) {
             await supabaseClient.from('profiles').insert([{ 
                 id: data.user.id, 
@@ -64,24 +73,29 @@ window.handleAuthSubmit = async function() {
                 last_name: document.getElementById('auth-last').value
             }]);
             applyHouseTheme(house);
+            updateHouseBadge(house);
             window.toggleAuthModal();
         }
     } else {
-        const email = `${handle.toLowerCase().replace(/\s/g, '')}@varissphere.node`;
         const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (!error) window.toggleAuthModal();
+        if (!error) {
+            window.toggleAuthModal();
+            location.reload();
+        }
     }
 };
 
 // ====== INITIALIZATION ======
 document.addEventListener("DOMContentLoaded", () => {
-    console.log("System Initialized: main.js active.");
-    
-    // Auto-apply theme if user is already logged in
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
         if (session) {
             supabaseClient.from('profiles').select('house').eq('id', session.user.id).single()
-                .then(({ data }) => { if (data) applyHouseTheme(data.house); });
+                .then(({ data }) => { 
+                    if (data) {
+                        applyHouseTheme(data.house);
+                        updateHouseBadge(data.house);
+                    } 
+                });
         }
     });
 });
