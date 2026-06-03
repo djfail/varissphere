@@ -1,64 +1,152 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VARIS_SPHERE // PulseFeed</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body class="bg-gray-950 text-gray-200 min-h-screen">
+// ====== CONFIGURATION ======
+const SUPABASE_URL = "https://rwhoiqssmveztuspywpg.supabase.co"; 
+const SUPABASE_ANON_KEY = "sb_publishable_khPW-u-jip8x0E2P7SH5NA_f-kzfN4Q"; 
 
-    <header class="border-b border-gray-800 bg-gray-900/80 sticky top-0 z-50 backdrop-blur-md">
-        <div class="max-w-2xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold tracking-wider text-purple-400 font-mono">VARIS_SPHERE // PulseFeed</h1>
-            
-            <div id="auth-header-actions" class="flex items-center space-x-3">
-                <button onclick="toggleAuthModal()" id="login-btn" class="text-xs bg-purple-900/50 text-purple-300 border border-purple-500/30 px-3 py-1.5 rounded font-mono hover:bg-purple-800 transition">CONNECT_NODE</button>
-                
-                <div id="user-profile-summary" class="hidden flex items-center space-x-2">
-                    <span id="header-username" class="text-xs text-purple-300 font-mono"></span>
-                    <button onclick="handleLogout()" class="text-xs bg-red-950/40 text-red-400 border border-red-900/40 px-2 py-1 rounded font-mono hover:bg-red-900/30 transition">DISCONNECT</button>
-                </div>
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentUserSession = null;
+let currentProfile = null;
+let isSignUpView = false;
+
+// ====== GLOBAL UI FUNCTIONS (Accessible by index.html buttons) ======
+
+window.toggleAuthModal = function() {
+    const modal = document.getElementById('auth-modal');
+    if (modal) modal.classList.toggle('hidden');
+    const status = document.getElementById('auth-status');
+    if (status) status.innerText = '';
+};
+
+window.handleLogout = async function() {
+    await supabaseClient.auth.signOut();
+    location.reload();
+};
+
+window.toggleAuthView = function() {
+    const SECRET_INVITE_CODE = "MAGESTICA2026"; 
+    const urlParams = new URLSearchParams(window.location.search);
+    const playerInviteInput = urlParams.get('invite');
+
+    if (!isSignUpView) {
+        if (playerInviteInput !== SECRET_INVITE_CODE) {
+            const status = document.getElementById('auth-status');
+            if (status) {
+                status.className = "text-red-400 text-xs mt-2 font-mono";
+                status.innerText = "ACCESS_DENIED: Secure invitation token invalid or missing.";
+            }
+            return;
+        }
+    }
+
+    isSignUpView = !isSignUpView;
+    const title = document.getElementById('modal-title');
+    const toggleLink = document.getElementById('auth-toggle-view');
+    const submitBtn = document.getElementById('auth-submit-btn');
+    const onboarding = document.getElementById('onboarding-fields');
+
+    if (isSignUpView) {
+        if (title) title.innerText = "// REGISTRATION_MATRIX";
+        if (toggleLink) toggleLink.innerText = "Return to secure node login";
+        if (submitBtn) submitBtn.innerText = "CREATE_MATRIX_IDENTITY";
+        if (onboarding) onboarding.classList.remove('hidden');
+    } else {
+        if (title) title.innerText = "// IDENTITY_VERIFICATION";
+        if (toggleLink) toggleLink.innerText = "Need to create a new matrix profile? Sign up";
+        if (submitBtn) submitBtn.innerText = "INITIALIZE_SESSION";
+        if (onboarding) onboarding.classList.add('hidden');
+    }
+};
+
+window.handleAuthSubmit = async function() {
+    const status = document.getElementById('auth-status');
+    const email = document.getElementById('auth-email')?.value.trim();
+    const password = document.getElementById('auth-password')?.value;
+
+    if (!email || !password) {
+        if (status) status.innerText = "ERROR: Credentials missing.";
+        return;
+    }
+
+    if (isSignUpView) {
+        const username = document.getElementById('auth-username')?.value.trim();
+        const first_name = document.getElementById('auth-firstname')?.value.trim();
+        const house = document.getElementById('auth-house')?.value.trim();
+
+        const { data, error } = await supabaseClient.auth.signUp({ email, password });
+        if (error) { if (status) status.innerText = "FAIL: " + error.message; return; }
+        
+        if (data.user) {
+            await supabaseClient.from('profiles').insert([{ id: data.user.id, username, first_name, house }]);
+            if (status) status.innerText = "SUCCESS: Profile initialized!";
+            setTimeout(() => window.toggleAuthModal(), 1500);
+        }
+    } else {
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) { if (status) status.innerText = "FAIL: " + error.message; }
+        else { if (status) status.innerText = "SUCCESS: Identity Verified."; setTimeout(() => window.toggleAuthModal(), 1000); }
+    }
+};
+
+window.submitPlayerPost = async function() {
+    const content = document.getElementById('broadcast-content')?.value.trim();
+    const photo_url = document.getElementById('broadcast-photo')?.value.trim();
+    const status = document.getElementById('broadcast-status');
+
+    if (!content || !currentUserSession) return;
+
+    const { error } = await supabaseClient.from('posts').insert([{
+        author_id: currentUserSession.user.id,
+        content,
+        photo_url: photo_url || null,
+        is_published: true
+    }]);
+
+    if (!error) {
+        if (status) status.innerText = "TRANSMISSION SENT.";
+        document.getElementById('broadcast-content').value = '';
+    }
+};
+
+// ====== INITIALIZATION ======
+
+document.addEventListener("DOMContentLoaded", () => {
+    fetchPulseFeed();
+    listenToFeedUpdates();
+
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        currentUserSession = session;
+        const loginBtn = document.getElementById('login-btn');
+        const userProfile = document.getElementById('user-profile-summary');
+        const broadcaster = document.getElementById('player-broadcaster');
+
+        if (session) {
+            const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', session.user.id).single();
+            if (profile) document.getElementById('header-username').innerText = `${profile.first_name} [${profile.house}]`;
+            if (loginBtn) loginBtn.classList.add('hidden');
+            if (userProfile) userProfile.classList.remove('hidden');
+            if (broadcaster) broadcaster.classList.remove('hidden');
+        } else {
+            if (loginBtn) loginBtn.classList.remove('hidden');
+            if (userProfile) userProfile.classList.add('hidden');
+            if (broadcaster) broadcaster.classList.add('hidden');
+        }
+    });
+});
+
+async function fetchPulseFeed() {
+    const container = document.getElementById('feed-container');
+    const { data: posts } = await supabaseClient.from('posts').select(`*, profiles(username, first_name, house)`).eq('is_published', true).order('created_at', { ascending: false });
+    if (container && posts) {
+        document.getElementById('loading')?.remove();
+        container.innerHTML = posts.map(p => `
+            <div class="p-4 border border-gray-800 rounded bg-gray-900/50">
+                <p class="text-xs text-purple-400 font-mono">@${p.profiles.username} [${p.profiles.house}]</p>
+                <p class="text-sm mt-2">${p.content}</p>
             </div>
-        </div>
-    </header>
+        `).join('');
+    }
+}
 
-    <main class="max-w-2xl mx-auto px-4 py-6 space-y-6" id="feed-container">
-        <div id="loading" class="text-center text-gray-500 font-mono text-sm py-12">
-            CONNECTING TO HOUSE QUANTUM NODE...
-        </div>
-    </main>
-
-    <div id="auth-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-        <div class="bg-gray-900 border border-purple-900 p-6 rounded-lg w-full max-w-sm">
-            <h2 id="modal-title" class="text-lg font-bold text-purple-400 font-mono mb-4">// IDENTITY_VERIFICATION</h2>
-            
-            <div class="space-y-3">
-                <input type="email" id="auth-email" placeholder="IDENTITY_ID (EMAIL)" class="w-full bg-black border border-gray-700 p-2 text-sm font-mono text-white">
-                <input type="password" id="auth-password" placeholder="ACCESS_KEY (PASSWORD)" class="w-full bg-black border border-gray-700 p-2 text-sm font-mono text-white">
-                
-                <div id="onboarding-fields" class="hidden space-y-3">
-                    <input type="text" id="auth-username" placeholder="MATRIX_HANDLE" class="w-full bg-black border border-gray-700 p-2 text-sm font-mono text-white">
-                    <input type="text" id="auth-firstname" placeholder="TRUE_NAME" class="w-full bg-black border border-gray-700 p-2 text-sm font-mono text-white">
-                    <input type="text" id="auth-house" placeholder="FACTION_HOUSE" class="w-full bg-black border border-gray-700 p-2 text-sm font-mono text-white">
-                </div>
-            </div>
-
-            <div id="auth-status" class="mt-2 text-xs font-mono"></div>
-
-            <button onclick="handleAuthSubmit()" id="auth-submit-btn" class="w-full mt-6 bg-purple-900 text-purple-200 py-2 font-mono hover:bg-purple-800">INITIALIZE_SESSION</button>
-            <button onclick="toggleAuthView()" id="auth-toggle-view" class="w-full mt-2 text-[10px] text-gray-500 font-mono hover:text-gray-300">Need to create a new matrix profile? Sign up</button>
-        </div>
-    </div>
-
-    <div id="player-broadcaster" class="hidden max-w-2xl mx-auto px-4 pb-12">
-        <textarea id="broadcast-content" class="w-full bg-gray-900 border border-gray-800 p-4 font-mono text-sm text-gray-300" placeholder="TRANSMIT MESSAGE..."></textarea>
-        <input type="text" id="broadcast-photo" placeholder="IMAGE_URL (OPTIONAL)" class="w-full bg-gray-900 border border-gray-800 p-2 font-mono text-sm text-gray-400 mt-2">
-        <button onclick="submitPlayerPost()" class="mt-2 w-full bg-purple-950/30 border border-purple-500/30 py-2 text-purple-400 font-mono hover:bg-purple-900/50">BROADCAST</button>
-        <div id="broadcast-status" class="mt-2 text-xs font-mono"></div>
-    </div>
-
-    <script src="app.js" defer></script>
-</body>
-</html>
+function listenToFeedUpdates() {
+    supabaseClient.channel('public:posts').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, fetchPulseFeed).subscribe();
+}
