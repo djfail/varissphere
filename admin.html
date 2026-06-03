@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VarisSphere | GM Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background-color: #0b0c10; color: #c5c6c7; font-family: monospace; }
+        .terminal-box { background-color: #1f2833; border: 1px solid #45f3ff; box-shadow: 0 0 10px rgba(69, 243, 255, 0.2); }
+    </style>
+</head>
+<body class="p-6">
+    <div class="max-w-4xl mx-auto space-y-8">
+        
+        <!-- Header -->
+        <div class="border-b border-[#45f3ff] pb-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-[#45f3ff] tracking-widest">GM_CONSOLE // VARIS_SPHERE</h1>
+            <span class="text-xs bg-red-900/40 text-red-400 border border-red-500/30 px-2 py-1 rounded animate-pulse">ROOT_ACCESS</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            <!-- Column 1: Identity Registration -->
+            <div class="terminal-box p-5 rounded-lg space-y-4">
+                <h2 class="text-lg font-bold text-[#66fcf1] border-b border-gray-700 pb-2">// REGISTER_NEW_IDENTITY</h2>
+                
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">HANDLE (username)</label>
+                    <input type="text" id="reg-username" placeholder="e.g. archmage_v" class="w-full bg-black border border-gray-600 p-2 text-white focus:border-[#45f3ff] outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">DISPLAY NAME</label>
+                    <input type="text" id="reg-name" placeholder="e.g. Varis" class="w-full bg-black border border-gray-600 p-2 text-white focus:border-[#45f3ff] outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">CELESTIAL HOUSE / faction</label>
+                    <input type="text" id="reg-house" placeholder="e.g. House Varis" class="w-full bg-black border border-gray-600 p-2 text-white focus:border-[#45f3ff] outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">BIOGRAPHY</label>
+                    <textarea id="reg-bio" placeholder="Identity overview..." class="w-full bg-black border border-gray-600 p-2 text-white focus:border-[#45f3ff] outline-none h-20"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">AVATAR URL (optional image link)</label>
+                    <input type="text" id="reg-photo" placeholder="https://..." class="w-full bg-black border border-gray-600 p-2 text-white focus:border-[#45f3ff] outline-none">
+                </div>
+                
+                <button onclick="registerIdentity()" class="w-full bg-[#45f3ff] text-black font-bold p-2 hover:bg-[#66fcf1] transition">INITIALIZE_IDENTITY</button>
+                <p id="reg-status" class="text-xs mt-2 font-bold"></p>
+            </div>
+
+            <!-- Column 2: Broadcaster -->
+            <div class="terminal-box p-5 rounded-lg space-y-4">
+                <h2 class="text-lg font-bold text-[#66fcf1] border-b border-gray-700 pb-2">// BROADCAST_TRANSMISSION</h2>
+                
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">SELECT ACTIVE IDENTITY</label>
+                    <select id="post-author" class="w-full bg-black border border-gray-600 p-2 text-white focus:border-[#45f3ff] outline-none">
+                        <option value="">-- Fetching network nodes... --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">TRANSMISSION CONTENT</label>
+                    <textarea id="post-content" placeholder="Type data broadcast packet..." class="w-full bg-black border border-gray-600 p-2 text-white focus:border-[#45f3ff] outline-none h-32"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">ATTACH IMAGE URL (optional)</label>
+                    <input type="text" id="post-photo" placeholder="https://..." class="w-full bg-black border border-gray-600 p-2 text-white focus:border-[#45f3ff] outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">SCHEDULE TIMESTAMP</label>
+                        <input type="datetime-local" id="post-time" class="w-full bg-black border border-gray-600 p-2 text-white focus:border-[#45f3ff] outline-none text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">FEED VISIBILITY</label>
+                        <select id="post-published" class="w-full bg-black border border-gray-600 p-2 text-white focus:border-[#45f3ff] outline-none text-xs">
+                            <option value="true">LIVE NOW</option>
+                            <option value="false">STAGED / HOLD</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button onclick="broadcastPost()" class="w-full bg-[#45f3ff] text-black font-bold p-2 hover:bg-[#66fcf1] transition">TRANSMIT_PACKET</button>
+                <p id="post-status" class="text-xs mt-2 font-bold"></p>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Use the exact same backend link
+        const SUPABASE_URL = "https://rwhoiqssmveztuspywpg.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_khPW-u-jip8x0E2P7SH5NA_f-kzfN4Q";
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        document.addEventListener("DOMContentLoaded", () => {
+            // Set default clock to right now
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('post-time').value = now.toISOString().slice(0,16);
+            loadIdentities();
+        });
+
+        async function loadIdentities() {
+            const dropdown = document.getElementById('post-author');
+            try {
+                const { data: profiles, error } = await sb.from('profiles').select('id, first_name, username, house').order('first_name');
+                if (error) throw error;
+                
+                if(!profiles || profiles.length === 0) {
+                    dropdown.innerHTML = '<option value="">[ No identities registered ]</option>';
+                    return;
+                }
+                
+                dropdown.innerHTML = profiles.map(p => `<option value="${p.id}">${p.first_name} (@${p.username}) [${p.house}]</option>`).join('');
+            } catch (err) {
+                dropdown.innerHTML = '<option value="">[ Error connecting to matrix ]</option>';
+            }
+        }
+
+        async function registerIdentity() {
+            const status = document.getElementById('reg-status');
+            const username = document.getElementById('reg-username').value.trim();
+            const first_name = document.getElementById('reg-name').value.trim();
+            const house = document.getElementById('reg-house').value.trim();
+            const bio = document.getElementById('reg-bio').value.trim();
+            const photo_url = document.getElementById('reg-photo').value.trim();
+
+            if(!username || !first_name || !house) {
+                status.className = "text-red-400 text-xs mt-2 font-bold";
+                status.innerText = "CRITICAL_ERROR: Missing identity tags.";
+                return;
+            }
+
+            try {
+                const { error } = await sb.from('profiles').insert([{ username, first_name, house, bio, photo_url: photo_url || null }]);
+                if(error) throw error;
+                
+                status.className = "text-green-400 text-xs mt-2 font-bold";
+                status.innerText = "SUCCESS: Profile matrix generated.";
+                // Clear form fields
+                document.getElementById('reg-username').value = '';
+                document.getElementById('reg-name').value = '';
+                document.getElementById('reg-house').value = '';
+                document.getElementById('reg-bio').value = '';
+                document.getElementById('reg-photo').value = '';
+                loadIdentities();
+            } catch(err) {
+                status.className = "text-red-400 text-xs mt-2 font-bold";
+                status.innerText = "ERROR: ID overwrite block: " + err.message;
+            }
+        }
+
+        async function broadcastPost() {
+            const status = document.getElementById('post-status');
+            const author_id = document.getElementById('post-author').value;
+            const content = document.getElementById('post-content').value.trim();
+            const photo_url = document.getElementById('post-photo').value.trim();
+            const scheduled_time = new Date(document.getElementById('post-time').value).toISOString();
+            const is_published = document.getElementById('post-published').value === "true";
+
+            if(!author_id || !content) {
+                status.className = "text-red-400 text-xs mt-2 font-bold";
+                status.innerText = "CRITICAL_ERROR: Content packet blank.";
+                return;
+            }
+
+            try {
+                const { error } = await sb.from('posts').insert([{ author_id, content, photo_url: photo_url || null, scheduled_time, is_published }]);
+                if(error) throw error;
+                
+                status.className = "text-green-400 text-xs mt-2 font-bold";
+                status.innerText = "SUCCESS: Data packet sent across network plane.";
+                document.getElementById('post-content').value = '';
+                document.getElementById('post-photo').value = '';
+            } catch(err) {
+                status.className = "text-red-400 text-xs mt-2 font-bold";
+                status.innerText = "TRANSMISSION_FAILED: " + err.message;
+            }
+        }
+    </script>
+</body>
+</html>
