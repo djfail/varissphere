@@ -58,7 +58,7 @@ window.handleAuthSubmit = async function() {
     const handle = document.getElementById('auth-username')?.value.trim();
     const password = document.getElementById('auth-password')?.value;
     const house = document.getElementById('auth-house')?.value;
-    const email = `${handle.toLowerCase().replace(/\s/g, '')}@varissphere.node`;
+    const email = `${handle.toLowerCase().replace(/\s/g, '')}@varissphere.auth`;
 
     if (!handle || !password) return;
 
