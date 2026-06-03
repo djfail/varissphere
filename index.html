@@ -6,48 +6,53 @@
     <title>VARIS_SPHERE // PulseFeed</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --primary-accent: #6b21a8; }
+        .accent-border { border-color: var(--primary-accent); }
+        .accent-text { color: var(--primary-accent); }
+    </style>
 </head>
-<body class="bg-gray-950 text-gray-200 min-h-screen">
-
+<body class="bg-gray-950 text-gray-200">
     <header class="border-b border-gray-800 bg-gray-900/80 sticky top-0 z-50 backdrop-blur-md">
-        <div class="max-w-2xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold tracking-wider text-purple-400 font-mono">VARIS_SPHERE // PulseFeed</h1>
-            
-            <div id="auth-header-actions" class="flex items-center space-x-3">
-                <button onclick="window.toggleAuthModal()" id="login-btn" class="text-xs bg-purple-900/50 text-purple-300 border border-purple-500/30 px-3 py-1.5 rounded font-mono hover:bg-purple-800 transition">CONNECT_NODE</button>
-                
-                <div id="user-profile-summary" class="hidden flex items-center space-x-2">
-                    <span id="header-username" class="text-xs text-purple-300 font-mono"></span>
-                    <button onclick="window.handleLogout()" class="text-xs bg-red-950/40 text-red-400 border border-red-900/40 px-2 py-1 rounded font-mono hover:bg-red-900/30 transition">DISCONNECT</button>
-                </div>
-            </div>
+        <div class="max-w-2xl mx-auto px-4 py-3 flex justify-between items-center">
+            <img src="logo.png" alt="Logo" class="h-10 w-auto mix-blend-screen">
+            <button onclick="window.toggleAuthModal()" id="login-btn" class="text-xs border px-3 py-1 rounded font-mono hover:bg-gray-800 transition">CONNECT_NODE</button>
         </div>
     </header>
 
-    <main class="max-w-2xl mx-auto px-4 py-6 space-y-6" id="feed-container">
-        <div id="loading" class="text-center text-gray-500 font-mono text-sm py-12">
-            CONNECTING TO HOUSE QUANTUM NODE...
-        </div>
-    </main>
-
-    <div id="auth-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-        <div class="bg-gray-900 border border-purple-900 p-6 rounded-lg w-full max-w-sm">
-            <h2 id="modal-title" class="text-lg font-bold text-purple-400 font-mono mb-4">// IDENTITY_VERIFICATION</h2>
+    <div id="auth-modal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-900 border p-6 rounded-lg w-full max-w-sm">
+            <h2 id="modal-title" class="text-lg font-bold font-mono mb-4">IDENTITY_VERIFICATION</h2>
             <div class="space-y-3">
-                <input type="email" id="auth-email" placeholder="IDENTITY_ID (EMAIL)" class="w-full bg-black border border-gray-700 p-2 text-sm font-mono text-white">
-                <input type="password" id="auth-password" placeholder="ACCESS_KEY (PASSWORD)" class="w-full bg-black border border-gray-700 p-2 text-sm font-mono text-white">
+                <input type="text" id="auth-username" placeholder="HANDLE" class="w-full bg-black border p-2 text-sm font-mono">
+                <input type="password" id="auth-password" placeholder="ACCESS_KEY" class="w-full bg-black border p-2 text-sm font-mono">
+                
                 <div id="onboarding-fields" class="hidden space-y-3">
-                    <input type="text" id="auth-username" placeholder="MATRIX_HANDLE" class="w-full bg-black border border-gray-700 p-2 text-sm font-mono text-white">
-                    <input type="text" id="auth-firstname" placeholder="TRUE_NAME" class="w-full bg-black border border-gray-700 p-2 text-sm font-mono text-white">
-                    <input type="text" id="auth-house" placeholder="FACTION_HOUSE" class="w-full bg-black border border-gray-700 p-2 text-sm font-mono text-white">
+                    <input type="text" id="auth-first" placeholder="FIRST_NAME" class="w-full bg-black border p-2 text-sm font-mono">
+                    <input type="text" id="auth-last" placeholder="LAST_NAME" class="w-full bg-black border p-2 text-sm font-mono">
+                    <select id="auth-house" class="w-full bg-black border p-2 text-sm font-mono">
+                        <option value="">SELECT_HOUSE</option>
+                        <option value="Celestial House Balance">Celestial House Balance</option>
+                        <option value="House Niros">House Niros</option>
+                        <option value="House Iorke">House Iorke</option>
+                        <option value="House Thorngrave">House Thorngrave</option>
+                        <option value="Celestial House Vantal">Celestial House Vantal</option>
+                        <option value="House Varis">House Varis</option>
+                        <option value="House Dreyser">House Dreyser</option>
+                        <option value="Celestial House Auradrakon">Celestial House Auradrakon</option>
+                        <option value="House Kraxin">House Kraxin</option>
+                        <option value="House Pardon">House Pardon</option>
+                        <option value="Celestial House Materferox">Celestial House Materferox</option>
+                        <option value="House Ashgrip">House Ashgrip</option>
+                        <option value="House Glass">House Glass</option>
+                        <option value="The House of R">The House of R</option>
+                    </select>
                 </div>
             </div>
-            <div id="auth-status" class="mt-2 text-xs font-mono"></div>
-            <button onclick="window.handleAuthSubmit()" id="auth-submit-btn" class="w-full mt-6 bg-purple-900 text-purple-200 py-2 font-mono hover:bg-purple-800">INITIALIZE_SESSION</button>
-            <button onclick="window.toggleAuthView()" id="auth-toggle-view" class="w-full mt-2 text-[10px] text-gray-500 font-mono hover:text-gray-300">Need to create a new matrix profile? Sign up</button>
+            <button onclick="window.handleAuthSubmit()" class="w-full mt-6 bg-purple-900 py-2 font-mono">INITIALIZE</button>
+            <button onclick="window.toggleAuthView()" class="w-full mt-2 text-[10px] text-gray-500 font-mono">SWITCH_MODE</button>
         </div>
     </div>
-
-    <script src="main.js" defer></script>
+    <script src="app.js" defer></script>
 </body>
 </html>
