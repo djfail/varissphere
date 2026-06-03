@@ -1,67 +1,64 @@
-// ====== CONFIGURATION ======
-const SUPABASE_URL = "https://rwhoiqssmveztuspywpg.supabase.co"; 
-const SUPABASE_ANON_KEY = "sb_publishable_khPW-u-jip8x0E2P7SH5NA_f-kzfN4Q"; 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VARIS_SPHERE // PulseFeed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-950 text-gray-200 min-h-screen">
 
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    <header class="border-b border-gray-800 bg-gray-900/80 sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-2xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold tracking-wider text-purple-400 font-mono">VARIS_SPHERE // PulseFeed</h1>
+            
+            <div id="auth-header-actions" class="flex items-center space-x-3">
+                <button onclick="toggleAuthModal()" id="login-btn" class="text-xs bg-purple-900/50 text-purple-300 border border-purple-500/30 px-3 py-1.5 rounded font-mono hover:bg-purple-800 transition">CONNECT_NODE</button>
+                
+                <div id="user-profile-summary" class="hidden flex items-center space-x-2">
+                    <span id="header-username" class="text-xs text-purple-300 font-mono"></span>
+                    <button onclick="handleLogout()" class="text-xs bg-red-950/40 text-red-400 border border-red-900/40 px-2 py-1 rounded font-mono hover:bg-red-900/30 transition">DISCONNECT</button>
+                </div>
+            </div>
+        </div>
+    </header>
 
-let currentUserSession = null;
-let currentProfile = null;
-let isSignUpView = false;
+    <main class="max-w-2xl mx-auto px-4 py-6 space-y-6" id="feed-container">
+        <div id="loading" class="text-center text-gray-500 font-mono text-sm py-12">
+            CONNECTING TO HOUSE QUANTUM NODE...
+        </div>
+    </main>
 
-document.addEventListener("DOMContentLoaded", () => {
-    fetchPulseFeed();
-    listenToFeedUpdates();
+    <div id="auth-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+        <div class="bg-gray-900 border border-purple-900 p-6 rounded-lg w-full max-w-sm">
+            <h2 id="modal-title" class="text-lg font-bold text-purple-400 font-mono mb-4">// IDENTITY_VERIFICATION</h2>
+            
+            <div class="space-y-3">
+                <input type="email" id="auth-email" placeholder="IDENTITY_ID (EMAIL)" class="w-full bg-black border border-gray-700 p-2 text-sm font-mono text-white">
+                <input type="password" id="auth-password" placeholder="ACCESS_KEY (PASSWORD)" class="w-full bg-black border border-gray-700 p-2 text-sm font-mono text-white">
+                
+                <div id="onboarding-fields" class="hidden space-y-3">
+                    <input type="text" id="auth-username" placeholder="MATRIX_HANDLE" class="w-full bg-black border border-gray-700 p-2 text-sm font-mono text-white">
+                    <input type="text" id="auth-firstname" placeholder="TRUE_NAME" class="w-full bg-black border border-gray-700 p-2 text-sm font-mono text-white">
+                    <input type="text" id="auth-house" placeholder="FACTION_HOUSE" class="w-full bg-black border border-gray-700 p-2 text-sm font-mono text-white">
+                </div>
+            </div>
 
-    supabaseClient.auth.onAuthStateChange(async (event, session) => {
-        currentUserSession = session;
-        if (session) {
-            await fetchUserProfile(session.user.id);
-        } else {
-            currentProfile = null;
-            updateUIForLoggedOut();
-        }
-    });
-});
+            <div id="auth-status" class="mt-2 text-xs font-mono"></div>
 
-async function fetchUserProfile(userId) {
-    try {
-        const { data: profile, error } = await supabaseClient
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
-        if (error) throw error;
-        currentProfile = profile;
-        updateUIForLoggedIn();
-    } catch (err) {
-        console.error("Profile load failed:", err);
-        updateUIForLoggedIn();
-    }
-}
+            <button onclick="handleAuthSubmit()" id="auth-submit-btn" class="w-full mt-6 bg-purple-900 text-purple-200 py-2 font-mono hover:bg-purple-800">INITIALIZE_SESSION</button>
+            <button onclick="toggleAuthView()" id="auth-toggle-view" class="w-full mt-2 text-[10px] text-gray-500 font-mono hover:text-gray-300">Need to create a new matrix profile? Sign up</button>
+        </div>
+    </div>
 
-function updateUIForLoggedIn() {
-    const loginBtn = document.getElementById('login-btn');
-    const userProfile = document.getElementById('user-profile-summary');
-    const broadcaster = document.getElementById('player-broadcaster');
-    const headerUsername = document.getElementById('header-username');
+    <div id="player-broadcaster" class="hidden max-w-2xl mx-auto px-4 pb-12">
+        <textarea id="broadcast-content" class="w-full bg-gray-900 border border-gray-800 p-4 font-mono text-sm text-gray-300" placeholder="TRANSMIT MESSAGE..."></textarea>
+        <input type="text" id="broadcast-photo" placeholder="IMAGE_URL (OPTIONAL)" class="w-full bg-gray-900 border border-gray-800 p-2 font-mono text-sm text-gray-400 mt-2">
+        <button onclick="submitPlayerPost()" class="mt-2 w-full bg-purple-950/30 border border-purple-500/30 py-2 text-purple-400 font-mono hover:bg-purple-900/50">BROADCAST</button>
+        <div id="broadcast-status" class="mt-2 text-xs font-mono"></div>
+    </div>
 
-    if (loginBtn) loginBtn.classList.add('hidden');
-    if (userProfile) userProfile.classList.remove('hidden');
-    if (broadcaster) broadcaster.classList.remove('hidden');
-    
-    if (currentProfile && headerUsername) {
-        headerUsername.innerText = `${currentProfile.first_name} [${currentProfile.house}]`;
-    }
-}
-
-function updateUIForLoggedOut() {
-    const loginBtn = document.getElementById('login-btn');
-    const userProfile = document.getElementById('user-profile-summary');
-    const broadcaster = document.getElementById('player-broadcaster');
-
-    if (loginBtn) loginBtn.classList.remove('hidden');
-    if (userProfile) userProfile.classList.add('hidden');
-    if (broadcaster) broadcaster.classList.add('hidden');
-}
-
-// Ensure the rest of your functions (fetchPulseFeed, etc.) follow below...
+    <script src="app.js" defer></script>
+</body>
+</html>
