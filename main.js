@@ -5,102 +5,83 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let isSignUpView = false;
 
+// ====== HOUSE THEME DEFINITIONS ======
+const houseThemes = {
+    "Celestial House Balance": { background: "linear-gradient(to right, #000, #FFF)" },
+    "House Niros": { color: "#A52A2A" },
+    "House Iorke": { color: "#800080" },
+    "House Thorngrave": { color: "#00CED1" },
+    "Celestial House Vantal": { background: "linear-gradient(to right, #FF0000, #FFD700)" },
+    "House Varis": { background: "linear-gradient(to right, #FF0000, #0000FF)" },
+    "House Dreyser": { color: "#800080" },
+    "Celestial House Auradrakon": { background: "linear-gradient(to right, #FFC0CB, #87CEEB)" },
+    "House Kraxin": { background: "linear-gradient(to right, #C0C0C0, #FF0000, #FFD700)" },
+    "House Pardon": { background: "linear-gradient(to right, #FFC0CB, #0000FF, #C0C0C0)" },
+    "Celestial House Materferox": { background: "linear-gradient(to right, #008000, #A52A2A)" },
+    "House Ashgrip": { background: "linear-gradient(to right, #FFA500, #A52A2A)" },
+    "House Glass": { background: "linear-gradient(to right, #FF0000, #008000, #FFFF00)" },
+    "The House of R": { background: "linear-gradient(to right, #800080, #808080)" }
+};
+
+window.applyHouseTheme = function(houseName) {
+    const theme = houseThemes[houseName] || { color: "#6b21a8" };
+    const root = document.documentElement.style;
+    if (theme.background) {
+        root.setProperty('--primary-accent', theme.background);
+        document.body.style.borderTop = `5px solid ${theme.background.split(',')[1].trim()}`;
+    } else {
+        root.setProperty('--primary-accent', theme.color);
+    }
+};
+
 // ====== GLOBAL UI FUNCTIONS ======
-window.toggleAuthModal = function() {
-    const modal = document.getElementById('auth-modal');
-    if (modal) modal.classList.toggle('hidden');
-};
+window.toggleAuthModal = () => document.getElementById('auth-modal')?.classList.toggle('hidden');
 
-window.handleLogout = async function() {
-    await supabaseClient.auth.signOut();
-    location.reload();
-};
-
-window.toggleAuthView = function() {
+window.toggleAuthView = () => {
     isSignUpView = !isSignUpView;
-    const title = document.getElementById('modal-title');
-    const fields = document.getElementById('onboarding-fields');
-    const submitBtn = document.getElementById('auth-submit-btn');
-    const toggleLink = document.getElementById('auth-toggle-view');
-    
-    if (title) title.innerText = isSignUpView ? "// REGISTRATION_MATRIX" : "// IDENTITY_VERIFICATION";
-    if (fields) fields.classList.toggle('hidden', !isSignUpView);
-    if (submitBtn) submitBtn.innerText = isSignUpView ? "CREATE_MATRIX_IDENTITY" : "INITIALIZE_SESSION";
-    if (toggleLink) toggleLink.innerText = isSignUpView ? "Return to secure node login" : "Need to create a new matrix profile? Sign up";
+    document.getElementById('onboarding-fields')?.classList.toggle('hidden', !isSignUpView);
+    document.getElementById('modal-title').innerText = isSignUpView ? "REGISTRATION_MATRIX" : "IDENTITY_VERIFICATION";
 };
 
 // ====== AUTH LOGIC ======
 window.handleAuthSubmit = async function() {
-    const email = document.getElementById('auth-email')?.value.trim();
+    const handle = document.getElementById('auth-username')?.value.trim();
     const password = document.getElementById('auth-password')?.value;
-    const status = document.getElementById('auth-status');
+    const house = document.getElementById('auth-house')?.value;
 
-    if (!email || !password) {
-        if (status) status.innerText = "ERROR: Credentials missing.";
-        return;
-    }
+    if (!handle || !password) return;
 
     if (isSignUpView) {
-        const username = document.getElementById('auth-username')?.value.trim();
-        const first_name = document.getElementById('auth-firstname')?.value.trim();
-        const house = document.getElementById('auth-house')?.value.trim();
-
+        const email = `${handle.toLowerCase().replace(/\s/g, '')}@varissphere.node`;
         const { data, error } = await supabaseClient.auth.signUp({ email, password });
-        if (error) {
-            if (status) status.innerText = "FAIL: " + error.message;
-        } else {
-            // Create the profile
-            await supabaseClient.from('profiles').insert([{ id: data.user.id, username, first_name, house }]);
-            if (status) status.innerText = "SUCCESS: Identity initialized.";
-            setTimeout(() => window.toggleAuthModal(), 1500);
+        
+        if (!error) {
+            await supabaseClient.from('profiles').insert([{ 
+                id: data.user.id, 
+                username: handle, 
+                house: house,
+                first_name: document.getElementById('auth-first').value,
+                last_name: document.getElementById('auth-last').value
+            }]);
+            applyHouseTheme(house);
+            window.toggleAuthModal();
         }
     } else {
+        const email = `${handle.toLowerCase().replace(/\s/g, '')}@varissphere.node`;
         const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) {
-            if (status) status.innerText = "FAIL: " + error.message;
-        } else {
-            if (status) status.innerText = "SUCCESS: Session established.";
-            setTimeout(() => window.toggleAuthModal(), 1000);
-        }
-    }
-};
-
-// ====== BROADCASTING ======
-window.submitPlayerPost = async function() {
-    const content = document.getElementById('broadcast-content')?.value.trim();
-    const status = document.getElementById('broadcast-status');
-    
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user || !content) return;
-
-    const { error } = await supabaseClient.from('posts').insert([{
-        author_id: user.id,
-        content: content
-    }]);
-
-    if (error) {
-        if (status) status.innerText = "ERROR: Transmission failed.";
-    } else {
-        if (status) status.innerText = "TRANSMISSION SENT.";
-        document.getElementById('broadcast-content').value = '';
+        if (!error) window.toggleAuthModal();
     }
 };
 
 // ====== INITIALIZATION ======
 document.addEventListener("DOMContentLoaded", () => {
-    supabaseClient.auth.onAuthStateChange((event, session) => {
-        const loginBtn = document.getElementById('login-btn');
-        const userProfile = document.getElementById('user-profile-summary');
-        const broadcaster = document.getElementById('player-broadcaster');
-        
+    console.log("System Initialized: main.js active.");
+    
+    // Auto-apply theme if user is already logged in
+    supabaseClient.auth.getSession().then(({ data: { session } }) => {
         if (session) {
-            if (loginBtn) loginBtn.classList.add('hidden');
-            if (userProfile) userProfile.classList.remove('hidden');
-            if (broadcaster) broadcaster.classList.remove('hidden');
-        } else {
-            if (loginBtn) loginBtn.classList.remove('hidden');
-            if (userProfile) userProfile.classList.add('hidden');
-            if (broadcaster) broadcaster.classList.add('hidden');
+            supabaseClient.from('profiles').select('house').eq('id', session.user.id).single()
+                .then(({ data }) => { if (data) applyHouseTheme(data.house); });
         }
     });
 });
