@@ -25,13 +25,12 @@
                 
                 <img id="user-avatar" onclick="window.showProfile()" 
                      class="hidden w-8 h-8 rounded-full border border-gray-700 cursor-pointer hover:border-white transition" 
-                     src="default-avatar.png" alt="Profile">
+                     alt="Profile">
             </div>
         </div>
     </header>
 
     <main id="app-container" class="max-w-2xl mx-auto p-4">
-        
         <div id="feed-view">
             <p class="text-gray-500 font-mono text-sm">AWAITING_AUTHENTICATION_STREAM...</p>
         </div>
@@ -47,8 +46,19 @@
     <div id="auth-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
         <div class="bg-gray-900 p-6 border border-gray-700 rounded w-80">
             <h2 id="modal-title" class="text-lg font-bold font-mono mb-4 text-white">WELCOME TO VARIS SPHERE</h2>
-            <div id="onboarding-fields" class="space-y-2 mb-4"></div>
+            
+            <div id="onboarding-fields" class="space-y-3 mb-4">
+                <input type="email" id="email-input" placeholder="HANDLE@EMAIL.COM" 
+                       class="w-full bg-black border border-gray-700 p-2 text-sm font-mono text-white">
+                <input type="password" id="pass-input" placeholder="ACCESS_KEY" 
+                       class="w-full bg-black border border-gray-700 p-2 text-sm font-mono text-white">
+            </div>
+            
             <button onclick="window.handleAuthSubmit()" class="w-full bg-white text-black font-bold py-2 font-mono">CONTINUE</button>
+            
+            <button onclick="window.toggleAuthView()" class="w-full text-xs text-gray-500 mt-2 font-mono underline">
+                SWITCH_MODE
+            </button>
         </div>
     </div>
 
