@@ -8,71 +8,49 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --primary-accent: #6b21a8; }
-        .accent-border { border-color: var(--primary-accent); }
-        .accent-text { color: var(--primary-accent); }
-        
-        /* Logo transparency fix */
-        img[alt="Logo"] {
-            mix-blend-mode: multiply;
-            filter: brightness(1.2) contrast(1.1);
-        }
+        .hidden { display: none; }
     </style>
 </head>
 <body class="bg-gray-950 text-gray-200">
 
-    <header class="border-b border-gray-800 bg-gray-900/80 sticky top-0 z-50 backdrop-blur-md">
+    <header class="border-b border-gray-800 bg-gray-900/80 sticky top-0 z-50">
         <div class="max-w-2xl mx-auto px-4 py-3 flex justify-between items-center">
-            <img src="logo.png" alt="Logo" class="h-10 w-auto">
+            <h1 class="text-xl font-bold font-mono tracking-tighter">VARIS_SPHERE</h1>
             
-            <div id="user-house-badge" class="hidden text-[10px] font-mono border px-2 py-1 uppercase">
-                HOUSE: <span id="display-house-name">NONE</span>
+            <div id="auth-controls">
+                <button onclick="window.toggleAuthModal()" id="login-btn" 
+                        class="text-xs border px-3 py-1 rounded font-mono hover:bg-gray-800 transition">
+                    LOG IN / SIGN UP
+                </button>
+                
+                <img id="user-avatar" onclick="window.showProfile()" 
+                     class="hidden w-8 h-8 rounded-full border border-gray-700 cursor-pointer hover:border-white transition" 
+                     src="default-avatar.png" alt="Profile">
             </div>
-
-            <button onclick="window.toggleAuthModal()" id="login-btn" class="text-xs border px-3 py-1 rounded font-mono hover:bg-gray-800 transition">
-                CONNECT_NODE
-            </button>
         </div>
     </header>
 
-    <!-- AUTH MODAL -->
-    <div id="auth-modal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
-        <div class="bg-gray-900 border border-gray-700 p-6 rounded-lg w-full max-w-sm">
-            <h2 id="modal-title" class="text-lg font-bold font-mono mb-4 text-white">IDENTITY_VERIFICATION</h2>
-            
-            <div class="space-y-3">
-                <input type="text" id="auth-username" placeholder="HANDLE" class="w-full bg-black border border-gray-700 p-2 text-sm font-mono focus:border-white outline-none">
-                <input type="password" id="auth-password" placeholder="ACCESS_KEY" class="w-full bg-black border border-gray-700 p-2 text-sm font-mono focus:border-white outline-none">
-                
-                <div id="onboarding-fields" class="hidden space-y-3">
-                    <input type="text" id="auth-first" placeholder="FIRST_NAME" class="w-full bg-black border border-gray-700 p-2 text-sm font-mono focus:border-white outline-none">
-                    <select id="auth-house" class="w-full bg-black border border-gray-700 p-2 text-sm font-mono focus:border-white outline-none">
-                        <option value="">SELECT_HOUSE</option>
-                        <option value="Celestial House Balance">Celestial House Balance</option>
-                        <option value="House Niros">House Niros</option>
-                        <option value="House Iorke">House Iorke</option>
-                        <option value="House Thorngrave">House Thorngrave</option>
-                        <option value="Celestial House Vantal">Celestial House Vantal</option>
-                        <option value="House Varis">House Varis</option>
-                        <option value="House Dreyser">House Dreyser</option>
-                        <option value="Celestial House Auradrakon">Celestial House Auradrakon</option>
-                        <option value="House Kraxin">House Kraxin</option>
-                        <option value="House Pardon">House Pardon</option>
-                        <option value="Celestial House Materferox">Celestial House Materferox</option>
-                        <option value="House Ashgrip">House Ashgrip</option>
-                        <option value="House Glass">House Glass</option>
-                        <option value="The House of R">The House of R</option>
-                    </select>
-                </div>
-            </div>
+    <main id="app-container" class="max-w-2xl mx-auto p-4">
+        
+        <div id="feed-view">
+            <p class="text-gray-500 font-mono text-sm">AWAITING_AUTHENTICATION_STREAM...</p>
+        </div>
 
-            <button onclick="window.handleAuthSubmit()" class="w-full mt-6 bg-white text-black py-2 font-mono font-bold hover:bg-gray-200 transition">INITIALIZE</button>
-            <button onclick="window.toggleAuthView()" class="w-full mt-2 text-[10px] text-gray-500 font-mono hover:text-white transition">SWITCH_MODE</button>
+        <div id="profile-editor" class="hidden space-y-4 border border-gray-800 p-4 rounded">
+            <h2 class="font-mono font-bold">EDIT_PROFILE</h2>
+            <input type="file" id="avatar-upload" class="text-sm">
+            <textarea id="bio-input" placeholder="BIO_DATA" class="w-full bg-black border border-gray-700 p-2 text-sm font-mono"></textarea>
+            <button onclick="window.saveProfile()" class="bg-white text-black px-4 py-1 font-mono font-bold">UPDATE_NODE</button>
+        </div>
+    </main>
+
+    <div id="auth-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+        <div class="bg-gray-900 p-6 border border-gray-700 rounded w-80">
+            <h2 id="modal-title" class="text-lg font-bold font-mono mb-4 text-white">WELCOME TO VARIS SPHERE</h2>
+            <div id="onboarding-fields" class="space-y-2 mb-4"></div>
+            <button onclick="window.handleAuthSubmit()" class="w-full bg-white text-black font-bold py-2 font-mono">CONTINUE</button>
         </div>
     </div>
-
-    <main class="max-w-2xl mx-auto p-4">
-        <!-- Content will be generated here -->
-    </main>
 
     <script src="main.js" defer></script>
 </body>
