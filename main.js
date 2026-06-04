@@ -1,5 +1,5 @@
 // 1. Initialize Supabase
-const supabaseClient = supabase.createClient('YOUR_SUPABASE_URL', 'YOUR_SUPABASE_ANON_KEY');
+const supabaseClient = supabase.createClient('https://rwhoiqssmveztuspywpg.supabase.co', 'sb_publishable_khPW-u-jip8x0E2P7SH5NA_f-kzfN4Q');
 
 // 2. Initial Load
 window.addEventListener('DOMContentLoaded', async () => {
